@@ -1,17 +1,32 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Scenario } from '@/types/scenario';
+import { getSavedScenarios, deleteScenario } from '@/utils/scenarioUtils';
 
-// 시나리오 타입 정의
-interface Scenario {
-  id: string;
+// MongoDB에서 가져온 시나리오 타입
+interface ServerScenario {
+  _id: string;
   title: string;
-  description: string;
-  topic: string;
-  grade: string; 
-  subject: string;
+  totalDurationMinutes: number;
+  groupCount?: number;
   createdAt: string;
+  updatedAt: string;
+  stages?: {
+    stage1: any;
+    stage2: any;
+    stage3: any;
+  };
+  aiGenerated?: boolean;
+  scenarioDetails?: {
+    background?: string;
+    proArguments?: string[];
+    conArguments?: string[];
+    teacherTips?: string;
+    keyQuestions?: string[];
+  };
 }
 
 // 예시 시나리오 데이터
@@ -64,165 +79,230 @@ const exampleScenarios: Scenario[] = [
 ];
 
 export default function ScenariosPage() {
-  const [scenarios, setScenarios] = useState<Scenario[]>(exampleScenarios);
+  const router = useRouter();
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showServerData, setShowServerData] = useState(false);
+  const [serverScenarios, setServerScenarios] = useState<Scenario[]>([]);
+  const [serverDataLoading, setServerDataLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGrade, setFilterGrade] = useState('');
   const [filterSubject, setFilterSubject] = useState('');
 
-  // 검색 및 필터링 적용
-  const filteredScenarios = scenarios.filter(scenario => {
-    const matchesSearch = scenario.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          scenario.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          scenario.topic.toLowerCase().includes(searchTerm.toLowerCase());
+  // 로컬 시나리오 로드
+  useEffect(() => {
+    const loadScenarios = () => {
+      try {
+        const savedScenarios = getSavedScenarios();
+        setScenarios(savedScenarios);
+      } catch (error) {
+        console.error('Failed to load scenarios:', error);
+        setError('시나리오를 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    const matchesGrade = filterGrade === '' || scenario.grade.includes(filterGrade);
-    const matchesSubject = filterSubject === '' || scenario.subject.includes(filterSubject);
+    loadScenarios();
+  }, []);
+  
+  // 서버 시나리오 로드
+  const loadServerScenarios = async () => {
+    if (serverDataLoading) return;
     
-    return matchesSearch && matchesGrade && matchesSubject;
-  });
-
-  // 시나리오 삭제 함수
-  const handleDelete = (id: string) => {
-    if (window.confirm('정말 이 시나리오를 삭제하시겠습니까?')) {
-      setScenarios(scenarios.filter(scenario => scenario.id !== id));
+    setServerDataLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/scenarios');
+      
+      if (!response.ok) {
+        throw new Error('서버에서 시나리오를 불러오는 중 오류가 발생했습니다.');
+      }
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || '서버 응답 오류');
+      }
+      
+      // MongoDB 데이터 형식을 Scenario 형식으로 변환
+      const formattedScenarios: Scenario[] = result.data.map((item: ServerScenario) => ({
+        ...item,
+        id: item._id,
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+        // stages 속성이 없는 경우 기본값 제공
+        stages: item.stages || {
+          stage1: { id: '1', title: '다름과 마주하기', activities: [] },
+          stage2: { id: '2', title: '다름을 이해하기', activities: [] },
+          stage3: { id: '3', title: '다름과 공존하기', activities: [] }
+        }
+      }));
+      
+      setServerScenarios(formattedScenarios);
+      setShowServerData(true);
+    } catch (error: any) {
+      console.error('Failed to load server scenarios:', error);
+      setError(error.message || '서버 시나리오를 불러오는 중 오류가 발생했습니다.');
+      setShowServerData(false);
+    } finally {
+      setServerDataLoading(false);
     }
   };
-
+  
+  // 서버에서 시나리오 삭제
+  const handleDeleteServerScenario = async (id: string) => {
+    if (!confirm('이 시나리오를 서버에서 삭제하시겠습니까?')) return;
+    
+    try {
+      const response = await fetch(`/api/scenarios/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('시나리오 삭제 중 오류가 발생했습니다.');
+      }
+      
+      // 성공적으로 삭제된 경우 목록에서 제거
+      setServerScenarios(prev => prev.filter(scenario => scenario.id !== id));
+    } catch (error) {
+      console.error('Failed to delete server scenario:', error);
+      alert('시나리오 삭제 중 오류가 발생했습니다.');
+    }
+  };
+  
+  // 로컬에서 시나리오 삭제
+  const handleDeleteLocalScenario = (id: string) => {
+    if (!confirm('이 시나리오를 삭제하시겠습니까?')) return;
+    
+    try {
+      deleteScenario(id);
+      setScenarios(prev => prev.filter(scenario => scenario.id !== id));
+    } catch (error) {
+      console.error('Failed to delete scenario:', error);
+      alert('시나리오 삭제 중 오류가 발생했습니다.');
+    }
+  };
+  
+  // 사용할 시나리오 배열 선택
+  const displayScenarios = showServerData ? serverScenarios : scenarios;
+  
+  // 날짜 포맷 헬퍼 함수
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+  
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6 text-center">
+        <p>시나리오를 불러오는 중...</p>
+      </div>
+    );
+  }
+  
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <div className="bg-blue-700 text-white">
-        <div className="container mx-auto py-6 px-4">
-          <h1 className="text-3xl font-bold">토론 시나리오</h1>
-          <p className="mt-2 text-blue-100">토론 시나리오를 생성하고 관리합니다.</p>
+    <div className="container mx-auto p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-blue-700">토론 시나리오</h1>
+        <Link
+          href="/scenarios/create"
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          새 시나리오 만들기
+        </Link>
+      </div>
+      
+      {/* 데이터 소스 전환 버튼 */}
+      <div className="mb-6 flex items-center">
+        <div className="rounded-md bg-gray-200 p-1 flex">
+          <button
+            onClick={() => setShowServerData(false)}
+            className={`px-4 py-2 rounded-md ${!showServerData ? 'bg-white shadow-sm' : ''}`}
+          >
+            로컬 데이터
+          </button>
+          <button
+            onClick={loadServerScenarios}
+            className={`px-4 py-2 rounded-md ${showServerData ? 'bg-white shadow-sm' : ''}`}
+          >
+            {serverDataLoading ? '로딩 중...' : '서버 데이터'}
+          </button>
         </div>
       </div>
-
-      {/* 메인 콘텐츠 */}
-      <div className="container mx-auto py-8 px-4">
-        {/* 검색 및 필터 */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="flex flex-col md:flex-row md:items-end gap-4 mb-4">
-            <div className="flex-grow">
-              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">검색</label>
-              <input
-                type="text"
-                id="search"
-                placeholder="시나리오 제목, 설명 또는 토픽 검색..."
-                className="w-full px-4 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="w-full md:w-48">
-              <label htmlFor="grade" className="block text-sm font-medium text-gray-700 mb-1">학년 필터</label>
-              <select
-                id="grade"
-                className="w-full px-4 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value={filterGrade}
-                onChange={(e) => setFilterGrade(e.target.value)}
-              >
-                <option value="">모든 학년</option>
-                <option value="1">1학년</option>
-                <option value="2">2학년</option>
-                <option value="3">3학년</option>
-                <option value="4">4학년</option>
-                <option value="5">5학년</option>
-                <option value="6">6학년</option>
-              </select>
-            </div>
-            <div className="w-full md:w-48">
-              <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">교과 필터</label>
-              <select
-                id="subject"
-                className="w-full px-4 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value={filterSubject}
-                onChange={(e) => setFilterSubject(e.target.value)}
-              >
-                <option value="">모든 교과</option>
-                <option value="국어">국어</option>
-                <option value="사회">사회</option>
-                <option value="도덕">도덕</option>
-                <option value="과학">과학</option>
-                <option value="실과">실과</option>
-              </select>
-            </div>
-            <Link href="/scenarios/create" className="w-full md:w-auto">
-              <button className="w-full px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm transition-colors">
-                + 새 시나리오 생성
-              </button>
-            </Link>
-          </div>
+      
+      {/* 오류 메시지 */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md text-red-700">
+          {error}
         </div>
-
-        {/* 시나리오 목록 */}
-        {filteredScenarios.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6">
-            {filteredScenarios.map(scenario => (
-              <div key={scenario.id} className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="p-6">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                    <h2 className="text-xl font-bold text-blue-800">{scenario.title}</h2>
-                    <div className="flex items-center mt-2 md:mt-0">
-                      <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-md mr-2">
-                        {scenario.grade}
-                      </span>
-                      <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
-                        {scenario.subject}
-                      </span>
-                    </div>
-                  </div>
+      )}
+      
+      {displayScenarios.length === 0 ? (
+        <div className="bg-white rounded-lg shadow-md p-8 text-center">
+          <p className="text-xl text-gray-600 mb-4">저장된 시나리오가 없습니다.</p>
+          <p className="text-gray-500">
+            시나리오를 생성하려면 '새 시나리오 만들기' 버튼을 클릭하세요.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {displayScenarios.map(scenario => (
+            <div key={scenario.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="p-6">
+                <h2 className="text-xl font-bold mb-2 text-gray-800">{scenario.title}</h2>
+                <div className="mb-4 text-sm text-gray-500">
+                  <p>총 시간: {scenario.totalDurationMinutes}분</p>
+                  <p>생성 날짜: {formatDate(scenario.createdAt)}</p>
+                  {scenario.aiGenerated && (
+                    <p className="text-purple-600 font-medium mt-1">AI 생성 시나리오</p>
+                  )}
+                </div>
+                
+                <div className="flex justify-between mt-4">
+                  <button
+                    onClick={() => router.push(`/scenarios/${scenario.id}`)}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    상세 보기
+                  </button>
                   
-                  <p className="text-gray-700 mb-3">{scenario.description}</p>
-                  
-                  <div className="bg-blue-50 p-3 rounded-md mb-4">
-                    <h3 className="text-sm font-medium text-blue-800 mb-1">토론 주제</h3>
-                    <p className="text-gray-700">{scenario.topic}</p>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-                    <span className="text-sm text-gray-500">생성일: {scenario.createdAt}</span>
-                    
-                    <div className="flex mt-4 sm:mt-0 space-x-3">
-                      <Link href={`/session?id=${scenario.id}`}>
-                        <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors shadow-sm">
-                          토론 시작
-                        </button>
-                      </Link>
-                      <Link href={`/scenarios/${scenario.id}`}>
-                        <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors shadow-sm">
-                          세부 정보
-                        </button>
-                      </Link>
-                      <Link href={`/scenarios/edit/${scenario.id}`}>
-                        <button className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors shadow-sm">
-                          수정
-                        </button>
-                      </Link>
-                      <button 
-                        onClick={() => handleDelete(scenario.id)}
-                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors shadow-sm"
-                      >
-                        삭제
-                      </button>
-                    </div>
-                  </div>
+                  <button
+                    onClick={() => showServerData 
+                      ? handleDeleteServerScenario(scenario.id) 
+                      : handleDeleteLocalScenario(scenario.id)
+                    }
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    삭제
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-white p-8 rounded-lg shadow text-center">
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">검색 결과가 없습니다</h3>
-            <p className="text-gray-600 mb-6">검색어나 필터를 변경하거나 새 시나리오를 만들어보세요.</p>
-            <Link href="/scenarios/create">
-              <button className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow transition-colors">
-                새 시나리오 생성
-              </button>
-            </Link>
-          </div>
-        )}
-      </div>
+              
+              <div className="bg-gray-100 p-4 flex justify-between">
+                <Link
+                  href={`/session?scenarioId=${scenario.id}`}
+                  className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600"
+                >
+                  토론 시작
+                </Link>
+                
+                <Link
+                  href={`/scenarios/${scenario.id}/edit`}
+                  className="px-3 py-1 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                >
+                  수정
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 } 

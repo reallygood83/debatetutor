@@ -15,6 +15,10 @@ export interface StageSection {
 export interface Scenario {
   id: string;
   title: string;
+  topic?: string;
+  grade?: string;
+  subject?: string;
+  keywords?: string[];
   totalDurationMinutes: number;
   groupCount?: number;
   createdAt: Date;
@@ -24,10 +28,34 @@ export interface Scenario {
     stage2: StageSection; // 다름을 이해하기
     stage3: StageSection; // 다름과 공존하기
   };
+  aiGenerated?: boolean;
+  scenarioDetails?: {
+    background?: string;
+    proArguments?: string[];
+    conArguments?: string[];
+    teacherTips?: string;
+    keyQuestions?: string[];
+    materials?: string[];
+    expectedOutcomes?: string[];
+  };
 }
 
 export type ScenarioFormData = {
   title: string;
+  topic?: string;
+  grade?: string;
+  subject?: string;
+  keywords?: string[];
   totalDurationMinutes: number;
   groupCount?: number;
+  aiGenerated?: boolean;
+  scenarioDetails?: {
+    background?: string;
+    proArguments?: string[];
+    conArguments?: string[];
+    teacherTips?: string;
+    keyQuestions?: string[];
+    materials?: string[];
+    expectedOutcomes?: string[];
+  };
 }; 

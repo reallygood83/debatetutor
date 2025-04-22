@@ -47,20 +47,9 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* 헤더 섹션 */}
-      <div className="bg-blue-700 text-white">
-        <div className="container mx-auto py-8 px-6">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">토론 튜터</h1>
-          <p className="text-xl md:text-2xl opacity-90">
-            경기초등토론교육모형을 활용한 토론 교육 지원 도구
-          </p>
-        </div>
-      </div>
-      
-      {/* 메인 콘텐츠 */}
-      <div className="container mx-auto px-6 py-12">
+      <div className="container mx-auto px-6 py-8">
         {/* 소개 섹션 */}
-        <section className="mb-16">
+        <section id="about" className="mb-16 scroll-mt-40">
           <div className="bg-white rounded-lg shadow-md p-8">
             <h2 className="text-3xl font-bold mb-6 text-blue-800">토론 튜터란?</h2>
             <p className="text-lg mb-6">
@@ -94,7 +83,7 @@ export default function HomePage() {
         </section>
         
         {/* 주요 기능 섹션 */}
-        <section className="mb-16">
+        <section id="features" className="mb-16 scroll-mt-40">
           <h2 className="text-3xl font-bold mb-8 text-center text-blue-800">주요 기능</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {features.map(feature => (
@@ -118,7 +107,7 @@ export default function HomePage() {
         </section>
         
         {/* 시작하기 섹션 */}
-        <section>
+        <section id="start" className="scroll-mt-40">
           <div className="bg-blue-700 text-white rounded-lg shadow-md p-8 text-center">
             <h2 className="text-3xl font-bold mb-4">지금 시작해보세요!</h2>
             <p className="text-xl mb-8 opacity-90">
@@ -132,18 +121,6 @@ export default function HomePage() {
           </div>
         </section>
       </div>
-      
-      {/* 푸터 */}
-      <footer className="bg-gray-800 text-white py-8">
-        <div className="container mx-auto px-6">
-          <div className="text-center">
-            <p className="mb-2">© 2023 토론 튜터 - 초등 토론 교육 지원 도구</p>
-            <p className="text-gray-400 text-sm">
-              경기초등토론교육모형 기반 · 교실 토론 활동 지원 애플리케이션
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 } 

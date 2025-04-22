@@ -3,23 +3,50 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { getScenarioById, deleteScenario } from '@/utils/scenarioUtils';
 
 // 시나리오 타입 정의 (scenarios 페이지와 동일한 타입)
 interface Scenario {
   id: string;
   title: string;
-  description: string;
-  topic: string;
-  grade: string;
-  subject: string;
-  createdAt: string;
+  description?: string;
+  topic?: string;
+  grade?: string;
+  subject?: string;
+  createdAt: string | Date;
+  updatedAt?: string | Date;
+  totalDurationMinutes?: number;
+  stages?: any;
   details?: {
-    affirmative: string;
-    negative: string;
-    background: string;
-    teacherNotes: string;
-    materials: string[];
-    expectedOutcomes: string[];
+    affirmative?: string;
+    negative?: string;
+    background?: string;
+    teacherNotes?: string;
+    materials?: string[];
+    expectedOutcomes?: string[];
+  };
+}
+
+// MongoDB에서 가져온 시나리오 타입
+interface ServerScenario {
+  _id: string;
+  title: string;
+  description?: string;
+  topic?: string;
+  grade?: string;
+  subject?: string;
+  totalDurationMinutes?: number;
+  createdAt: string;
+  updatedAt: string;
+  stages?: any;
+  scenarioDetails?: {
+    background?: string;
+    proArguments?: string[];
+    conArguments?: string[];
+    teacherTips?: string;
+    keyQuestions?: string[];
+    materials?: string[];
+    expectedOutcomes?: string[];
   };
 }
 
@@ -119,22 +146,106 @@ export default function ScenarioDetailPage() {
   
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 실제로는 API를 통해 데이터를 가져오는 로직이 위치
-    const foundScenario = exampleScenarios.find(s => s.id === id);
-    
-    if (foundScenario) {
-      setScenario(foundScenario);
+    async function loadScenario() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // 1. 로컬 스토리지에서 시나리오 찾기
+        const localScenario = getScenarioById(id);
+        if (localScenario) {
+          setScenario(localScenario);
+          setLoading(false);
+          return;
+        }
+
+        // 2. 로컬 예시 데이터에서 시나리오 찾기
+        const exampleScenario = exampleScenarios.find(s => s.id === id);
+        if (exampleScenario) {
+          setScenario(exampleScenario);
+          setLoading(false);
+          return;
+        }
+
+        // 3. 서버에서 시나리오 불러오기
+        const response = await fetch(`/api/scenarios/${id}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error('시나리오를 찾을 수 없습니다.');
+          }
+          throw new Error('서버에서 시나리오를 불러오는 중 오류가 발생했습니다.');
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(result.error || '서버 응답 오류');
+        }
+        
+        // MongoDB 데이터 형식을 Scenario 형식으로 변환
+        const serverData: ServerScenario = result.data;
+        const formattedScenario: Scenario = {
+          id: serverData._id,
+          title: serverData.title,
+          description: serverData.description || '',
+          topic: serverData.topic || '',
+          grade: serverData.grade || '',
+          subject: serverData.subject || '',
+          createdAt: new Date(serverData.createdAt),
+          updatedAt: new Date(serverData.updatedAt),
+          totalDurationMinutes: serverData.totalDurationMinutes,
+          stages: serverData.stages,
+          details: {
+            background: serverData.scenarioDetails?.background || '',
+            affirmative: serverData.scenarioDetails?.proArguments?.join('\n\n') || '',
+            negative: serverData.scenarioDetails?.conArguments?.join('\n\n') || '',
+            teacherNotes: serverData.scenarioDetails?.teacherTips || '',
+            materials: serverData.scenarioDetails?.materials || [],
+            expectedOutcomes: serverData.scenarioDetails?.expectedOutcomes || []
+          }
+        };
+        
+        setScenario(formattedScenario);
+      } catch (err: any) {
+        console.error('시나리오 로드 오류:', err);
+        setError(err.message || '시나리오를 불러오는 중 오류가 발생했습니다.');
+        setScenario(null);
+      } finally {
+        setLoading(false);
+      }
     }
     
-    setLoading(false);
+    loadScenario();
   }, [id]);
 
-  const handleDelete = () => {
-    if (window.confirm('정말 이 시나리오를 삭제하시겠습니까?')) {
-      // 실제로는 API를 통해 삭제 처리
+  const handleDelete = async () => {
+    if (!window.confirm('정말 이 시나리오를 삭제하시겠습니까?')) {
+      return;
+    }
+    
+    try {
+      if (id.startsWith('local_') || exampleScenarios.some(s => s.id === id)) {
+        // 로컬 시나리오 삭제
+        deleteScenario(id);
+      } else {
+        // 서버 시나리오 삭제
+        const response = await fetch(`/api/scenarios/${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+          throw new Error('시나리오 삭제 중 오류가 발생했습니다.');
+        }
+      }
+      
       router.push('/scenarios');
+    } catch (err: any) {
+      console.error('시나리오 삭제 오류:', err);
+      alert(err.message || '시나리오 삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -146,13 +257,13 @@ export default function ScenarioDetailPage() {
     );
   }
 
-  if (!scenario) {
+  if (error || !scenario) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="container mx-auto py-8 px-4">
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <h2 className="text-2xl font-bold text-red-600 mb-4">시나리오를 찾을 수 없습니다</h2>
-            <p className="text-gray-600 mb-6">요청하신 시나리오가 존재하지 않거나 삭제되었을 수 있습니다.</p>
+            <p className="text-gray-600 mb-6">{error || '요청하신 시나리오가 존재하지 않거나 삭제되었을 수 있습니다.'}</p>
             <Link href="/scenarios">
               <button className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow transition-colors">
                 시나리오 목록으로 돌아가기
@@ -229,7 +340,9 @@ export default function ScenarioDetailPage() {
               <div>
                 <div className="text-sm font-medium text-gray-500 mb-1">생성일</div>
                 <div className="text-gray-800">
-                  {scenario.createdAt}
+                  {typeof scenario.createdAt === 'string' 
+                    ? scenario.createdAt
+                    : scenario.createdAt.toLocaleDateString('ko-KR')}
                 </div>
               </div>
             </div>

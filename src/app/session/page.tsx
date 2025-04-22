@@ -5,6 +5,103 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Scenario, Activity } from '@/types/scenario';
 import { getScenarioById } from '@/utils/scenarioUtils';
+import { v4 as uuidv4 } from 'uuid';
+
+// 기본 시나리오 정의
+const DEFAULT_SCENARIO: Scenario = {
+  id: 'default',
+  title: '기본 토론: 초등학교에 휴대폰을 가지고 와야 한다',
+  totalDurationMinutes: 90,
+  groupCount: 4,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  stages: {
+    stage1: {
+      id: 'stage1',
+      title: '1단계: 다름과 마주하기',
+      activities: [
+        {
+          id: 'activity1-1',
+          title: '질문으로 논제 만나기',
+          durationMinutes: 10,
+          description: '사진/영상을 보고 자유롭게 질문을 만들어 발표합니다.',
+          teacherPrompts: [
+            '이 장면에서 무엇이 보이나요? 어떤 생각이 드나요?',
+            '왜? 어떻게? 라는 질문으로 시작해보세요.',
+            '찬반으로 나뉠 수 있는 질문을 생각해봅시다.'
+          ]
+        },
+        {
+          id: 'activity1-2',
+          title: '핵심 쟁점 찾기',
+          durationMinutes: 10,
+          description: '논제의 핵심 단어를 정의하고 찬반 의견의 핵심 쟁점을 찾습니다.',
+          teacherPrompts: [
+            '논제의 핵심 단어는 무엇인가요?',
+            '이 단어의 의미를 어떻게 정의할 수 있을까요?',
+            '찬성 측과 반대 측은 어떤 점에서 의견이 다를까요?'
+          ]
+        },
+        {
+          id: 'activity1-3',
+          title: '자료 조사/분석',
+          durationMinutes: 15,
+          description: '논제에 관한 자료를 찾고 분석합니다.',
+          teacherPrompts: [
+            '어떤 자료가 필요할까요?',
+            '이 자료는 신뢰할 수 있나요? 출처는 어디인가요?',
+            '찾은 자료는 어떤 주장을 뒷받침하나요?'
+          ]
+        }
+      ]
+    },
+    stage2: {
+      id: 'stage2',
+      title: '2단계: 다름을 이해하기',
+      activities: [
+        {
+          id: 'activity2-1',
+          title: '토론 여는 주장하기',
+          durationMinutes: 10,
+          description: '찬성 측과 반대 측이 각각 첫 주장을 발표합니다.',
+          teacherPrompts: [
+            '먼저 찬성 측의 주장을 들어볼까요?',
+            '이제 반대 측의 주장을 들어보겠습니다.',
+            '다른 모둠에서는 경청하는 자세로 들어주세요.'
+          ]
+        },
+        {
+          id: 'activity2-2',
+          title: '질의 및 반박하기',
+          durationMinutes: 15,
+          description: '상대측에 질문하고 반박합니다.',
+          teacherPrompts: [
+            '상대방 주장의 어떤 부분이 의문이 드나요?',
+            '증거나 근거가 부족한 부분은 어디인가요?',
+            '존중하는 태도로 질문해주세요.'
+          ]
+        }
+      ]
+    },
+    stage3: {
+      id: 'stage3',
+      title: '3단계: 다름과 공존하기',
+      activities: [
+        {
+          id: 'activity3-1',
+          title: '토론 후 생각 나누기',
+          durationMinutes: 10,
+          description: '토론을 통해 배운 점과 느낀 점을 나눕니다.',
+          teacherPrompts: [
+            '토론 전과 후에 생각이 어떻게 바뀌었나요?',
+            '상대방의 의견 중 인상 깊었던 부분은 무엇인가요?',
+            '다른 사람과 의견이 다를 때 어떻게 대화해야 할까요?'
+          ]
+        }
+      ]
+    }
+  }
+};
 
 // 타이머 컴포넌트
 function Timer({ 
@@ -85,44 +182,39 @@ export default function SessionPage() {
   const scenarioId = searchParams.get('scenarioId');
   
   const [scenario, setScenario] = useState<Scenario | null>(null);
-  const [currentStageIndex, setCurrentStageIndex] = useState(0);
-  const [currentActivityIndex, setCurrentActivityIndex] = useState(0);
+  const [currentStageIndex, setCurrentStageIndex] = useState(0); // 0, 1, 2 (stage1, stage2, stage3)
+  const [currentActivityIndex, setCurrentActivityIndex] = useState(0); // 각 스테이지 내 활동 인덱스
   const [loading, setLoading] = useState(true);
   const [showPrompts, setShowPrompts] = useState(false);
   
-  // 현재 단계와 활동을 배열로 변환
+  // 현재 단계와 활동을 배열로 변환 (수정된 로직)
   const getStagesAndActivities = useCallback(() => {
-    if (!scenario) return { stages: [], currentActivity: null };
+    if (!scenario) return { stages: [], currentActivity: null, currentStage: null };
     
-    const stages = Object.values(scenario.stages);
-    let activityCounter = 0;
-    let targetActivityIndex = 0;
-    let targetStageIndex = 0;
+    // 스테이지 배열로 변환
+    const stageKeys = ['stage1', 'stage2', 'stage3'];
+    const stages = stageKeys.map(key => scenario.stages[key as keyof typeof scenario.stages]);
     
-    // 현재 활동 찾기
-    for (let i = 0; i < stages.length; i++) {
-      const stage = stages[i];
-      for (let j = 0; j < stage.activities.length; j++) {
-        if (activityCounter === currentStageIndex * 100 + currentActivityIndex) {
-          targetStageIndex = i;
-          targetActivityIndex = j;
-          break;
-        }
-        activityCounter++;
-      }
-    }
+    // 현재 스테이지
+    const currentStage = stages[currentStageIndex];
     
-    const currentActivity = stages[targetStageIndex]?.activities[targetActivityIndex] || null;
+    // 현재 활동 (해당 스테이지의 활동 배열에서 인덱스로 접근)
+    const currentActivity = currentStage?.activities[currentActivityIndex] || null;
     
-    return { stages, currentActivity };
+    return { 
+      stages, 
+      currentActivity,
+      currentStage 
+    };
   }, [scenario, currentStageIndex, currentActivityIndex]);
   
   // 시나리오 로드
   useEffect(() => {
     const loadScenario = () => {
       if (!scenarioId) {
-        alert('시나리오 ID가 필요합니다.');
-        router.push('/scenarios');
+        // 시나리오 ID가 없을 경우 기본 시나리오 사용
+        setScenario(DEFAULT_SCENARIO);
+        setLoading(false);
         return;
       }
       
@@ -130,15 +222,14 @@ export default function SessionPage() {
         const foundScenario = getScenarioById(scenarioId);
         if (foundScenario) {
           setScenario(foundScenario);
-          setCurrentStageIndex(0);
-          setCurrentActivityIndex(0);
         } else {
-          alert('시나리오를 찾을 수 없습니다.');
-          router.push('/scenarios');
+          // 시나리오를 찾을 수 없는 경우 기본 시나리오 사용
+          setScenario(DEFAULT_SCENARIO);
         }
       } catch (error) {
         console.error('Failed to load scenario:', error);
-        alert('시나리오를 불러오는 중 오류가 발생했습니다.');
+        // 오류 발생 시 기본 시나리오 사용
+        setScenario(DEFAULT_SCENARIO);
       } finally {
         setLoading(false);
       }
@@ -149,26 +240,21 @@ export default function SessionPage() {
   
   // 다음 활동으로 이동
   const handleNext = () => {
-    const { stages } = getStagesAndActivities();
+    const { stages, currentStage } = getStagesAndActivities();
     
-    // 현재 단계의 활동 수 확인
-    const currentStage = stages[currentStageIndex];
     if (!currentStage) return;
     
-    const isLastActivityInStage = currentActivityIndex >= currentStage.activities.length - 1;
-    
-    if (isLastActivityInStage) {
-      // 다음 단계로 이동
-      if (currentStageIndex < stages.length - 1) {
-        setCurrentStageIndex(currentStageIndex + 1);
-        setCurrentActivityIndex(0);
-      } else {
-        // 모든 활동 완료
-        alert('모든 토론 활동이 완료되었습니다.');
-      }
-    } else {
-      // 다음 활동으로 이동
+    // 현재 스테이지의 마지막 활동인지 확인
+    if (currentActivityIndex < currentStage.activities.length - 1) {
+      // 같은 스테이지 내 다음 활동으로 이동
       setCurrentActivityIndex(currentActivityIndex + 1);
+    } else if (currentStageIndex < stages.length - 1) {
+      // 다음 스테이지의 첫 활동으로 이동
+      setCurrentStageIndex(currentStageIndex + 1);
+      setCurrentActivityIndex(0);
+    } else {
+      // 모든 활동 완료
+      alert('모든 토론 활동이 완료되었습니다.');
     }
     
     // 다음 활동으로 이동 시 발문 숨기기
@@ -178,13 +264,13 @@ export default function SessionPage() {
   // 이전 활동으로 이동
   const handlePrevious = () => {
     if (currentActivityIndex > 0) {
+      // 같은 스테이지 내 이전 활동으로 이동
       setCurrentActivityIndex(currentActivityIndex - 1);
     } else if (currentStageIndex > 0) {
+      // 이전 스테이지의 마지막 활동으로 이동
       setCurrentStageIndex(currentStageIndex - 1);
-      const previousStage = Object.values(scenario?.stages || {})[currentStageIndex - 1];
-      if (previousStage) {
-        setCurrentActivityIndex(previousStage.activities.length - 1);
-      }
+      const previousStage = getStagesAndActivities().stages[currentStageIndex - 1];
+      setCurrentActivityIndex(previousStage.activities.length - 1);
     }
     
     // 이전 활동으로 이동 시 발문 숨기기
@@ -201,17 +287,19 @@ export default function SessionPage() {
     return <div className="container mx-auto p-6 text-center">로딩 중...</div>;
   }
   
-  // 시나리오가 없을 경우
+  // 시나리오가 없을 경우 (이제 DEFAULT_SCENARIO를 사용하므로 이 부분은 실행되지 않음)
   if (!scenario) {
     return <div className="container mx-auto p-6 text-center">시나리오를 찾을 수 없습니다.</div>;
   }
   
-  const { stages, currentActivity } = getStagesAndActivities();
-  if (!currentActivity) {
+  const { stages, currentActivity, currentStage } = getStagesAndActivities();
+  
+  if (!currentActivity || !currentStage) {
     return <div className="container mx-auto p-6 text-center">활동을 찾을 수 없습니다.</div>;
   }
   
-  const currentStage = stages[currentStageIndex];
+  // 스테이지 이름 매핑
+  const stageNames = ['1단계: 다름과 마주하기', '2단계: 다름을 이해하기', '3단계: 다름과 공존하기'];
   
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -231,7 +319,7 @@ export default function SessionPage() {
           {/* 상단 진행 정보 */}
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 pb-4 border-b">
             <div>
-              <h2 className="text-xl font-semibold text-blue-700 mb-1">{currentStage.title}</h2>
+              <h2 className="text-xl font-semibold text-blue-700 mb-1">{stageNames[currentStageIndex]}</h2>
               <p className="text-gray-500">
                 단계 {currentStageIndex + 1}/3 • 활동 {currentActivityIndex + 1}/{currentStage.activities.length}
               </p>
