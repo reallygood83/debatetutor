@@ -1,15 +1,19 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Scenario from '@/models/Scenario';
+import type { NextRequest } from 'next/server';
+
+interface Context {
+  params: {
+    id: string;
+  };
+}
 
 // 특정 ID의 시나리오 조회
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, context: Context) {
   try {
     await dbConnect();
-    const scenario = await Scenario.findById(params.id);
+    const scenario = await Scenario.findById(context.params.id);
     
     if (!scenario) {
       return NextResponse.json(
@@ -32,12 +36,9 @@ export async function GET(
 }
 
 // 특정 ID의 시나리오 수정
-export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest, context: Context) {
   try {
-    const body = await req.json();
+    const body = await request.json();
     await dbConnect();
     
     // 업데이트 시간 추가
@@ -47,7 +48,7 @@ export async function PUT(
     };
     
     const updatedScenario = await Scenario.findByIdAndUpdate(
-      params.id,
+      context.params.id,
       updateData,
       { new: true, runValidators: true }
     );
@@ -73,13 +74,10 @@ export async function PUT(
 }
 
 // 특정 ID의 시나리오 삭제
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, context: Context) {
   try {
     await dbConnect();
-    const deletedScenario = await Scenario.findByIdAndDelete(params.id);
+    const deletedScenario = await Scenario.findByIdAndDelete(context.params.id);
     
     if (!deletedScenario) {
       return NextResponse.json(

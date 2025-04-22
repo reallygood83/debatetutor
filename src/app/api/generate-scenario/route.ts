@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import type { NextRequest } from 'next/server';
 
 // Google Gemini API 초기화
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
     // 요청에서 토론 주제 추출
-    const body = await req.json();
+    const body = await request.json();
     const { topic, grade, subject } = body;
     
     if (!topic) {
