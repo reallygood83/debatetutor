@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 
-// OpenAI 초기화
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Google Gemini API 초기화
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export async function POST(req: Request) {
   try {
@@ -18,6 +16,36 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+    
+    // Gemini 모델 설정
+    const modelName = "gemini-2.0-flash";
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      safetySettings: [
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+      ],
+      generationConfig: {
+        temperature: 0.5,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 8192,
+      },
+    });
     
     // 안내 시스템 메시지 생성
     const systemMessage = `
@@ -58,25 +86,39 @@ export async function POST(req: Request) {
       
       만약 사용자가 학년이나 교과를 입력했다면, 그에 맞게 조정해 주세요.
       입력되지 않은 경우, 토론 주제에 가장 적합한 학년과 교과를 추천해 주세요.
+
+      주의: 응답을 반드시 JSON 형식으로 제공해야 합니다. 외부 마크다운이나 설명 없이 오직 JSON 객체만 반환해주세요.
     `;
 
-    // OpenAI API 호출
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: 'system', content: systemMessage },
-        { role: 'user', content: userPrompt }
+    // Gemini API 호출
+    const chat = model.startChat({
+      history: [
+        {
+          role: "user",
+          parts: [{ text: systemMessage }],
+        },
+        {
+          role: "model",
+          parts: [{ text: "이해했습니다. 초등학교 토론 교육을 위한 시나리오를 JSON 형식으로 작성하겠습니다. 모든 필수 필드를 포함하도록 하겠습니다." }],
+        },
       ],
-      temperature: 0.5,
-      response_format: { type: "json_object" }
     });
 
-    // AI 응답 파싱
-    const content = response.choices[0].message.content;
+    const result = await chat.sendMessage(userPrompt);
+    const content = result.response.text();
     let scenarioData: any;
     
     try {
-      scenarioData = JSON.parse(content || '{}');
+      // JSON 형식 추출 (경우에 따라 Gemini가 마크다운 코드 블록 안에 JSON을 반환할 수 있음)
+      let jsonContent = content;
+      
+      // 마크다운 코드 블록에서 JSON 추출
+      const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+      if (jsonMatch && jsonMatch[1]) {
+        jsonContent = jsonMatch[1];
+      }
+      
+      scenarioData = JSON.parse(jsonContent);
       
       // 필수 필드 확인
       const requiredFields = ['title', 'topic', 'background', 'proArguments', 'conArguments', 'teacherTips', 'expectedOutcomes'];
