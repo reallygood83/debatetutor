@@ -373,8 +373,71 @@ export default function CreateScenarioPage() {
             <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
               <h3 className="text-lg font-medium text-yellow-800 mb-2">기대 학습 성과</h3>
               <ul className="list-disc pl-5 space-y-1">
-                {formData.scenarioDetails.expectedOutcomes.map((outcome, index) => (
+                {formData.scenarioDetails.expectedOutcomes.map((outcome: string, index: number) => (
                   <li key={index} className="text-gray-700">{outcome}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {/* 토론 배경 표시 (AI 생성 후) */}
+          {formData.scenarioDetails?.background && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+              <h3 className="text-lg font-medium text-blue-800 mb-2">토론 배경</h3>
+              <p className="text-gray-700 whitespace-pre-line">{formData.scenarioDetails.background}</p>
+            </div>
+          )}
+          
+          {/* 찬성/반대 입장 표시 (AI 생성 후) */}
+          {formData.scenarioDetails?.proArguments && formData.scenarioDetails?.conArguments && (
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-green-50 border border-green-200 rounded-md">
+                <h3 className="text-lg font-medium text-green-800 mb-2">찬성 입장</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  {formData.scenarioDetails.proArguments.map((arg: string, index: number) => (
+                    <li key={index} className="text-gray-700">{arg}</li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                <h3 className="text-lg font-medium text-red-800 mb-2">반대 입장</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  {formData.scenarioDetails.conArguments.map((arg: string, index: number) => (
+                    <li key={index} className="text-gray-700">{arg}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+          
+          {/* 교사 지도 노트 표시 (AI 생성 후) */}
+          {formData.scenarioDetails?.teacherTips && (
+            <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-md">
+              <h3 className="text-lg font-medium text-purple-800 mb-2">교사 지도 노트</h3>
+              <p className="text-gray-700 whitespace-pre-line">{formData.scenarioDetails.teacherTips}</p>
+            </div>
+          )}
+          
+          {/* 핵심 질문 표시 (AI 생성 후) */}
+          {formData.scenarioDetails?.keyQuestions && formData.scenarioDetails.keyQuestions.length > 0 && (
+            <div className="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-md">
+              <h3 className="text-lg font-medium text-indigo-800 mb-2">핵심 질문</h3>
+              <ul className="list-disc pl-5 space-y-1">
+                {formData.scenarioDetails.keyQuestions.map((question: string, index: number) => (
+                  <li key={index} className="text-gray-700">{question}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {/* 준비물 표시 (AI 생성 후) */}
+          {formData.scenarioDetails?.materials && formData.scenarioDetails.materials.length > 0 && (
+            <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-md">
+              <h3 className="text-lg font-medium text-gray-800 mb-2">준비물</h3>
+              <ul className="list-disc pl-5 space-y-1">
+                {formData.scenarioDetails.materials.map((material: string, index: number) => (
+                  <li key={index} className="text-gray-700">{material}</li>
                 ))}
               </ul>
             </div>

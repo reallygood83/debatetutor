@@ -34,47 +34,92 @@ const exampleScenarios: Scenario[] = [
   {
     id: '1',
     title: '기초 연금 지급 대상 확대',
-    description: '기초 연금 지급 대상을 확대하는 것의 찬반에 대해 토론합니다.',
     topic: '기초 연금 지급 대상 확대에 찬성한다 vs 반대한다',
     grade: '6학년',
     subject: '사회',
-    createdAt: '2023-08-15'
+    createdAt: new Date('2023-08-15'),
+    updatedAt: new Date('2023-08-15'),
+    totalDurationMinutes: 45,
+    stages: {
+      stage1: { id: '1', title: '다름과 마주하기', activities: [] },
+      stage2: { id: '2', title: '다름을 이해하기', activities: [] },
+      stage3: { id: '3', title: '다름과 공존하기', activities: [] }
+    },
+    scenarioDetails: {
+      background: '기초 연금 지급 대상을 확대하는 것의 찬반에 대해 토론합니다.'
+    }
   },
   {
     id: '2',
     title: '인공지능 창작물의 저작권',
-    description: '인공지능이 만든 작품의 저작권은 누구에게 있는지 토론합니다.',
     topic: '인공지능 창작물의 저작권은 AI에게 있다 vs 인간에게 있다',
     grade: '5-6학년',
     subject: '실과, 사회',
-    createdAt: '2023-09-03'
+    createdAt: new Date('2023-09-03'),
+    updatedAt: new Date('2023-09-03'),
+    totalDurationMinutes: 50,
+    stages: {
+      stage1: { id: '1', title: '다름과 마주하기', activities: [] },
+      stage2: { id: '2', title: '다름을 이해하기', activities: [] },
+      stage3: { id: '3', title: '다름과 공존하기', activities: [] }
+    },
+    scenarioDetails: {
+      background: '인공지능이 만든 작품의 저작권은 누구에게 있는지 토론합니다.'
+    }
   },
   {
     id: '3',
     title: '학교 교복 착용 의무화',
-    description: '초등학교에서 교복 착용을 의무화하는 것에 대한 찬반 토론입니다.',
     topic: '초등학교 교복 착용 의무화에 찬성한다 vs 반대한다',
     grade: '5학년',
     subject: '사회',
-    createdAt: '2023-07-20'
+    createdAt: new Date('2023-07-20'),
+    updatedAt: new Date('2023-07-20'),
+    totalDurationMinutes: 40,
+    stages: {
+      stage1: { id: '1', title: '다름과 마주하기', activities: [] },
+      stage2: { id: '2', title: '다름을 이해하기', activities: [] },
+      stage3: { id: '3', title: '다름과 공존하기', activities: [] }
+    },
+    scenarioDetails: {
+      background: '초등학교에서 교복 착용을 의무화하는 것에 대한 찬반 토론입니다.'
+    }
   },
   {
     id: '4',
     title: '청소년 스마트폰 사용 시간 제한',
-    description: '청소년의 스마트폰 사용 시간에 제한을 두어야 하는지에 대한 토론입니다.',
     topic: '청소년 스마트폰 사용 시간 제한에 찬성한다 vs 반대한다',
     grade: '4-6학년',
     subject: '도덕, 사회',
-    createdAt: '2023-09-10'
+    createdAt: new Date('2023-09-10'),
+    updatedAt: new Date('2023-09-10'),
+    totalDurationMinutes: 45,
+    stages: {
+      stage1: { id: '1', title: '다름과 마주하기', activities: [] },
+      stage2: { id: '2', title: '다름을 이해하기', activities: [] },
+      stage3: { id: '3', title: '다름과 공존하기', activities: [] }
+    },
+    scenarioDetails: {
+      background: '청소년의 스마트폰 사용 시간에 제한을 두어야 하는지에 대한 토론입니다.'
+    }
   },
   {
     id: '5',
     title: '재활용 분리수거 의무화',
-    description: '모든 가정에서 재활용 분리수거를 의무적으로 해야 하는지에 대한 토론입니다.',
     topic: '재활용 분리수거 의무화에 찬성한다 vs 반대한다',
     grade: '3-4학년',
     subject: '과학, 사회',
-    createdAt: '2023-08-28'
+    createdAt: new Date('2023-08-28'),
+    updatedAt: new Date('2023-08-28'),
+    totalDurationMinutes: 35,
+    stages: {
+      stage1: { id: '1', title: '다름과 마주하기', activities: [] },
+      stage2: { id: '2', title: '다름을 이해하기', activities: [] },
+      stage3: { id: '3', title: '다름과 공존하기', activities: [] }
+    },
+    scenarioDetails: {
+      background: '모든 가정에서 재활용 분리수거를 의무적으로 해야 하는지에 대한 토론입니다.'
+    }
   }
 ];
 
@@ -293,7 +338,7 @@ export default function ScenariosPage() {
                 </Link>
                 
                 <Link
-                  href={`/scenarios/${scenario.id}/edit`}
+                  href={`/scenarios/edit/${scenario.id}`}
                   className="px-3 py-1 bg-gray-500 text-white rounded-md hover:bg-gray-600"
                 >
                   수정

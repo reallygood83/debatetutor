@@ -3,30 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-
-// 시나리오 타입 정의
-interface Scenario {
-  id: string;
-  title: string;
-  description: string;
-  topic: string;
-  grade: string;
-  subject: string;
-  createdAt: string;
-  details?: {
-    affirmative: string;
-    negative: string;
-    background: string;
-    teacherNotes: string;
-    materials: string[];
-    expectedOutcomes: string[];
-  };
-}
+import { getScenarioById, saveScenario } from '@/utils/scenarioUtils';
+import { Scenario } from '@/types/scenario';
 
 // 폼 데이터 타입 정의
 interface FormData {
   title: string;
-  description: string;
   topic: string;
   grade: string;
   subject: string;
@@ -43,16 +25,22 @@ const exampleScenarios: Scenario[] = [
   {
     id: '1',
     title: '기초 연금 지급 대상 확대',
-    description: '기초 연금 지급 대상을 확대하는 것의 찬반에 대해 토론합니다.',
     topic: '기초 연금 지급 대상 확대에 찬성한다 vs 반대한다',
     grade: '6학년',
     subject: '사회',
-    createdAt: '2023-08-15',
-    details: {
-      affirmative: '기초 연금 지급 대상을 확대하면 더 많은 노인들에게 경제적 지원을 제공할 수 있다. 이는 노인 빈곤율을 낮추고 노인들의 삶의 질을 향상시키는 데 도움이 된다.',
-      negative: '기초 연금 지급 대상을 확대하면 재정 부담이 커진다. 이는 미래 세대에게 더 큰 부담을 주며, 정부의 재정적 지속 가능성을 위협할 수 있다.',
+    totalDurationMinutes: 45,
+    createdAt: new Date('2023-08-15'),
+    updatedAt: new Date('2023-08-15'),
+    stages: {
+      stage1: { id: '1', title: '다름과 마주하기', activities: [] },
+      stage2: { id: '2', title: '다름을 이해하기', activities: [] },
+      stage3: { id: '3', title: '다름과 공존하기', activities: [] }
+    },
+    scenarioDetails: {
       background: '현재 대한민국의 기초 연금은 만 65세 이상 노인 중 소득과 재산이 일정 기준 이하인 분들에게 지급되고 있습니다. 이 제도는 노인 빈곤 문제를 해결하기 위해 도입되었지만, 지급 대상과 금액에 대한 논쟁이 계속되고 있습니다.',
-      teacherNotes: '이 토론은 복지 정책의 확대와 재정적 지속 가능성 사이의 균형에 대해 학생들이 생각해볼 수 있는 기회를 제공합니다. 학생들에게 양측의 주장을 모두 이해하고, 증거에 기반한 논증을 할 수 있도록 지도하세요.',
+      proArguments: ['기초 연금 지급 대상을 확대하면 더 많은 노인들에게 경제적 지원을 제공할 수 있다. 이는 노인 빈곤율을 낮추고 노인들의 삶의 질을 향상시키는 데 도움이 된다.'],
+      conArguments: ['기초 연금 지급 대상을 확대하면 재정 부담이 커진다. 이는 미래 세대에게 더 큰 부담을 주며, 정부의 재정적 지속 가능성을 위협할 수 있다.'],
+      teacherTips: '이 토론은 복지 정책의 확대와 재정적 지속 가능성 사이의 균형에 대해 학생들이 생각해볼 수 있는 기회를 제공합니다. 학생들에게 양측의 주장을 모두 이해하고, 증거에 기반한 논증을 할 수 있도록 지도하세요.',
       materials: ['정부 복지 정책 관련 자료', '노인 빈곤율 통계 자료', '국가 재정 현황 자료', '인구 고령화 추세 자료'],
       expectedOutcomes: ['복지 정책의 목적과 효과에 대한 이해', '재정적 지속 가능성의 중요성 인식', '사회적 가치와 경제적 현실 사이의 균형 고려 능력', '증거 기반 논증 능력 향상']
     }
@@ -67,11 +55,11 @@ export default function ScenarioEditPage() {
   
   const [loading, setLoading] = useState(true);
   const [scenario, setScenario] = useState<Scenario | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   // 폼 상태 관리
   const [formData, setFormData] = useState<FormData>({
     title: '',
-    description: '',
     topic: '',
     grade: '',
     subject: '',
@@ -86,7 +74,6 @@ export default function ScenarioEditPage() {
   // 유효성 검사 오류 상태
   const [errors, setErrors] = useState<{
     title?: string;
-    description?: string;
     topic?: string;
     grade?: string;
     subject?: string;
@@ -94,29 +81,123 @@ export default function ScenarioEditPage() {
   
   // 시나리오 데이터 로드
   useEffect(() => {
-    // API 호출 대신 예시 데이터에서 시나리오 찾기
-    const foundScenario = exampleScenarios.find(s => s.id === id);
-    
-    if (foundScenario) {
-      setScenario(foundScenario);
+    const loadScenario = async () => {
+      setLoading(true);
+      setError(null);
       
-      // 폼 데이터 초기화
-      setFormData({
-        title: foundScenario.title,
-        description: foundScenario.description,
-        topic: foundScenario.topic,
-        grade: foundScenario.grade,
-        subject: foundScenario.subject,
-        affirmative: foundScenario.details?.affirmative || '',
-        negative: foundScenario.details?.negative || '',
-        background: foundScenario.details?.background || '',
-        teacherNotes: foundScenario.details?.teacherNotes || '',
-        materials: foundScenario.details?.materials?.join('\n') || '',
-        expectedOutcomes: foundScenario.details?.expectedOutcomes?.join('\n') || ''
-      });
-    }
+      try {
+        // 1. 로컬 스토리지에서 시나리오 찾기
+        const localScenario = getScenarioById(id);
+        if (localScenario) {
+          setScenario(localScenario);
+          
+          // 폼 데이터 초기화
+          setFormData({
+            title: localScenario.title,
+            topic: localScenario.topic || '',
+            grade: localScenario.grade || '',
+            subject: localScenario.subject || '',
+            affirmative: localScenario.scenarioDetails?.proArguments?.join('\n\n') || '',
+            negative: localScenario.scenarioDetails?.conArguments?.join('\n\n') || '',
+            background: localScenario.scenarioDetails?.background || '',
+            teacherNotes: localScenario.scenarioDetails?.teacherTips || '',
+            materials: localScenario.scenarioDetails?.materials?.join('\n') || '',
+            expectedOutcomes: localScenario.scenarioDetails?.expectedOutcomes?.join('\n') || ''
+          });
+          
+          setLoading(false);
+          return;
+        }
+
+        // 2. 예시 데이터에서 시나리오 찾기
+        const exampleScenario = exampleScenarios.find(s => s.id === id);
+        if (exampleScenario) {
+          setScenario(exampleScenario);
+          
+          // 폼 데이터 초기화
+          setFormData({
+            title: exampleScenario.title,
+            topic: exampleScenario.topic || '',
+            grade: exampleScenario.grade || '',
+            subject: exampleScenario.subject || '',
+            affirmative: exampleScenario.scenarioDetails?.proArguments?.join('\n\n') || '',
+            negative: exampleScenario.scenarioDetails?.conArguments?.join('\n\n') || '',
+            background: exampleScenario.scenarioDetails?.background || '',
+            teacherNotes: exampleScenario.scenarioDetails?.teacherTips || '',
+            materials: exampleScenario.scenarioDetails?.materials?.join('\n') || '',
+            expectedOutcomes: exampleScenario.scenarioDetails?.expectedOutcomes?.join('\n') || ''
+          });
+          
+          setLoading(false);
+          return;
+        }
+        
+        // 3. 서버에서 시나리오 불러오기
+        const response = await fetch(`/api/scenarios/${id}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error('시나리오를 찾을 수 없습니다.');
+          }
+          throw new Error('서버에서 시나리오를 불러오는 중 오류가 발생했습니다.');
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(result.error || '서버 응답 오류');
+        }
+        
+        // MongoDB 데이터 형식을 Scenario 형식으로 변환
+        const serverData = result.data;
+        const formattedScenario: Scenario = {
+          id: serverData._id,
+          title: serverData.title,
+          topic: serverData.topic || '',
+          grade: serverData.grade || '',
+          subject: serverData.subject || '',
+          createdAt: new Date(serverData.createdAt),
+          updatedAt: new Date(serverData.updatedAt),
+          totalDurationMinutes: serverData.totalDurationMinutes || 45,
+          stages: serverData.stages || {
+            stage1: { id: '1', title: '다름과 마주하기', activities: [] },
+            stage2: { id: '2', title: '다름을 이해하기', activities: [] },
+            stage3: { id: '3', title: '다름과 공존하기', activities: [] }
+          },
+          scenarioDetails: {
+            background: serverData.scenarioDetails?.background || '',
+            proArguments: serverData.scenarioDetails?.proArguments?.join('\n\n') || [],
+            conArguments: serverData.scenarioDetails?.conArguments?.join('\n\n') || [],
+            teacherTips: serverData.scenarioDetails?.teacherTips || '',
+            materials: serverData.scenarioDetails?.materials || [],
+            expectedOutcomes: serverData.scenarioDetails?.expectedOutcomes || []
+          }
+        };
+        
+        setScenario(formattedScenario);
+        
+        // 폼 데이터 초기화
+        setFormData({
+          title: formattedScenario.title,
+          topic: formattedScenario.topic || '',
+          grade: formattedScenario.grade || '',
+          subject: formattedScenario.subject || '',
+          affirmative: formattedScenario.scenarioDetails?.proArguments?.join('\n\n') || '',
+          negative: formattedScenario.scenarioDetails?.conArguments?.join('\n\n') || '',
+          background: formattedScenario.scenarioDetails?.background || '',
+          teacherNotes: formattedScenario.scenarioDetails?.teacherTips || '',
+          materials: formattedScenario.scenarioDetails?.materials?.join('\n') || '',
+          expectedOutcomes: formattedScenario.scenarioDetails?.expectedOutcomes?.join('\n') || ''
+        });
+      } catch (error: any) {
+        console.error('시나리오 불러오기 오류:', error);
+        setError(error.message || '시나리오를 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    setLoading(false);
+    loadScenario();
   }, [id]);
   
   // 입력값 변경 처리
@@ -129,7 +210,7 @@ export default function ScenarioEditPage() {
   };
   
   // 폼 제출 처리
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // 유효성 검사
@@ -157,10 +238,79 @@ export default function ScenarioEditPage() {
       return;
     }
     
-    // 실제로는 API를 통해 데이터 저장
-    // 여기서는 저장 성공 가정하고 상세 페이지로 이동
-    alert('시나리오가 성공적으로 수정되었습니다.');
-    router.push(`/scenarios/${id}`);
+    try {
+      // 줄바꿈으로 구분된 문자열을 배열로 변환
+      const materials = formData.materials
+        .split('\n')
+        .map(item => item.trim())
+        .filter(item => item !== '');
+      
+      const expectedOutcomes = formData.expectedOutcomes
+        .split('\n')
+        .map(item => item.trim())
+        .filter(item => item !== '');
+      
+      if (!scenario) {
+        throw new Error('시나리오 정보가 없습니다.');
+      }
+      
+      // 업데이트된 시나리오 객체 생성
+      const updatedScenario: Scenario = {
+        ...scenario,
+        title: formData.title,
+        topic: formData.topic,
+        grade: formData.grade,
+        subject: formData.subject,
+        updatedAt: new Date(),
+        scenarioDetails: {
+          ...scenario.scenarioDetails,
+          background: formData.background,
+          proArguments: formData.affirmative.split('\n\n').filter(p => p.trim() !== ''),
+          conArguments: formData.negative.split('\n\n').filter(p => p.trim() !== ''),
+          teacherTips: formData.teacherNotes,
+          materials: materials,
+          expectedOutcomes: expectedOutcomes
+        }
+      };
+      
+      // MongoDB ID로 시작하는 경우 (서버 시나리오)
+      if (id.length === 24 && /^[0-9a-fA-F]{24}$/.test(id)) {
+        // 서버에 저장
+        const response = await fetch(`/api/scenarios/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: formData.title,
+            topic: formData.topic,
+            grade: formData.grade,
+            subject: formData.subject,
+            scenarioDetails: {
+              background: formData.background,
+              proArguments: formData.affirmative.split('\n\n').filter(p => p.trim() !== ''),
+              conArguments: formData.negative.split('\n\n').filter(p => p.trim() !== ''),
+              teacherTips: formData.teacherNotes,
+              materials: materials,
+              expectedOutcomes: expectedOutcomes
+            }
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('시나리오 저장 중 오류가 발생했습니다.');
+        }
+      } else {
+        // 로컬 스토리지에 저장
+        saveScenario(updatedScenario);
+      }
+      
+      alert('시나리오가 성공적으로 수정되었습니다.');
+      router.push(`/scenarios/${id}`);
+    } catch (error: any) {
+      console.error('시나리오 저장 오류:', error);
+      alert(error.message || '시나리오 저장 중 오류가 발생했습니다.');
+    }
   };
   
   // 로딩 상태 표시
@@ -240,20 +390,6 @@ export default function ScenarioEditPage() {
                   />
                   {errors.topic && <p className="text-red-500 text-sm mt-1">{errors.topic}</p>}
                 </div>
-              </div>
-              
-              <div className="mb-4">
-                <label htmlFor="description" className="block text-gray-700 font-medium mb-2">
-                  시나리오 설명
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={2}
-                  className="w-full p-3 border border-gray-300 rounded-md"
-                ></textarea>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
