@@ -10,15 +10,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/reallygood83/debateAGI.git"
+    "url": "git+https://github.com/reallygood83/debatetutor.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/reallygood83/debateAGI/issues"
+    "url": "https://github.com/reallygood83/debatetutor/issues"
   },
-  "homepage": "https://github.com/reallygood83/debateAGI#readme",
+  "homepage": "https://github.com/reallygood83/debatetutor#readme",
   "description": "",
   "devDependencies": {
     "@types/node": "^22.14.1",
@@ -30,6 +30,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@google/generative-ai": "0.24.0",
     "@types/uuid": "^10.0.0",
     "mongodb": "^6.16.0",
     "mongoose": "^8.13.2",
