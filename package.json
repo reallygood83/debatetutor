@@ -1,6 +1,31 @@
 {
-  "dependencies": {
+  "name": "debateagi",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/reallygood83/debateAGI.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/reallygood83/debateAGI/issues"
+  },
+  "homepage": "https://github.com/reallygood83/debateAGI#readme",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^22.14.1",
     "@types/react": "^19.1.2",
-    "@types/react-dom": "^19.1.2"
+    "@types/react-dom": "^19.1.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "next": "^15.3.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
   }
 }
