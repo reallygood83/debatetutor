@@ -3,14 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
   env: {
     MONGODB_URI: process.env.MONGODB_URI,
-  },
-  serverRuntimeConfig: {
-    // 서버에서만 사용할 설정
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-  },
-  publicRuntimeConfig: {
-    // 클라이언트에도 노출시킬 설정
-    APP_ENV: process.env.NODE_ENV,
+    SECRET_KEY: process.env.SECRET_KEY
   },
   async headers() {
     return [
