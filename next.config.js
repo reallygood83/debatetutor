@@ -3,7 +3,6 @@ const nextConfig = {
   reactStrictMode: true,
   env: {
     MONGODB_URI: process.env.MONGODB_URI,
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     SECRET_KEY: process.env.SECRET_KEY
   },

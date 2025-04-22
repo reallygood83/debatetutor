@@ -1,5 +1,5 @@
-import { Scenario, ScenarioFormData } from '../types/scenario';
-import { defaultStageTemplate, calculateTimings } from '../data/scenarioTemplates';
+import { Scenario, ScenarioFormData } from '@/types/scenario';
+import { defaultStageTemplate, calculateTimings } from '@/data/scenarioTemplates';
 import { v4 as uuidv4 } from 'uuid';
 
 // 로컬 스토리지에서 모든 시나리오 가져오기

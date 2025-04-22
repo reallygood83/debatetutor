@@ -1,4 +1,4 @@
-import { StageSection } from '../types/scenario';
+import { StageSection } from '@/types/scenario';
 
 // 기본 스테이지 템플릿 - 경기초등토론교육모형 3단계
 export const defaultStageTemplate: { 

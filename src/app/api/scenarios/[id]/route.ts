@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Scenario from '@/models/Scenario';
+import Scenario from '@/models/scenario';
 
 // 특정 ID의 시나리오 조회
 export async function GET(request: Request, { params }: { params: { id: string } }) {

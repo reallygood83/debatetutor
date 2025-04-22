@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Scenario from '@/models/Scenario';
+import Scenario from '@/models/scenario';
 import type { NextRequest } from 'next/server';
 
 // 모든 시나리오 조회

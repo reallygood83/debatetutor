@@ -6,7 +6,12 @@
       "use": "@vercel/next"
     }
   ],
-  "installCommand": "npm install --force",
+  "installCommand": "npm install",
   "buildCommand": "npm run build",
-  "devCommand": "npm run dev"
+  "devCommand": "npm run dev",
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  }
 } 
