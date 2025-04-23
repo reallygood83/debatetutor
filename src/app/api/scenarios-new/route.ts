@@ -3,7 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import Scenario from '@/models/scenario';
 
 /**
- * GET: 모든 시나리오 조회
+ * 모든 시나리오 조회
  */
 export async function GET() {
   try {
@@ -24,7 +24,7 @@ export async function GET() {
 }
 
 /**
- * POST: 새 시나리오 저장
+ * 새 시나리오 저장
  */
 export async function POST(request: NextRequest) {
   try {

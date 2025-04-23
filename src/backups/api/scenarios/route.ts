@@ -1,10 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Scenario from '@/models/scenario';
+import type { NextRequest } from 'next/server';
 
-/**
- * GET: 모든 시나리오 조회
- */
+// 모든 시나리오 조회
 export async function GET() {
   try {
     await dbConnect();
@@ -23,9 +22,7 @@ export async function GET() {
   }
 }
 
-/**
- * POST: 새 시나리오 저장
- */
+// 새 시나리오 저장
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
