@@ -133,7 +133,7 @@ export default function ScenarioEditPage() {
         }
         
         // 3. 서버에서 시나리오 불러오기
-        const response = await fetch(`/api/scenarios/${id}`);
+        const response = await fetch(`/api/scenarios-new/${id}`);
         
         if (!response.ok) {
           if (response.status === 404) {
@@ -144,12 +144,12 @@ export default function ScenarioEditPage() {
         
         const result = await response.json();
         
-        if (!result.success) {
+        if (!response.ok) {
           throw new Error(result.error || '서버 응답 오류');
         }
         
         // MongoDB 데이터 형식을 Scenario 형식으로 변환
-        const serverData = result.data;
+        const serverData = result.scenario;
         const formattedScenario: Scenario = {
           id: serverData._id,
           title: serverData.title,
@@ -166,8 +166,8 @@ export default function ScenarioEditPage() {
           },
           scenarioDetails: {
             background: serverData.scenarioDetails?.background || '',
-            proArguments: serverData.scenarioDetails?.proArguments?.join('\n\n') || [],
-            conArguments: serverData.scenarioDetails?.conArguments?.join('\n\n') || [],
+            proArguments: serverData.scenarioDetails?.proArguments || [],
+            conArguments: serverData.scenarioDetails?.conArguments || [],
             teacherTips: serverData.scenarioDetails?.teacherTips || '',
             materials: serverData.scenarioDetails?.materials || [],
             expectedOutcomes: serverData.scenarioDetails?.expectedOutcomes || []
@@ -273,40 +273,36 @@ export default function ScenarioEditPage() {
         }
       };
       
+      // 서버에서 시나리오 수정
+      const updateServerScenario = async () => {
+        try {
+          const response = await fetch(`/api/scenarios-new/${id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updatedScenario),
+          });
+          
+          if (!response.ok) {
+            throw new Error('시나리오 수정 중 오류가 발생했습니다.');
+          }
+          
+          alert('시나리오가 성공적으로 수정되었습니다.');
+          router.push(`/scenarios/${id}`);
+        } catch (error: any) {
+          console.error('시나리오 수정 오류:', error);
+          alert(error.message || '시나리오 수정 중 오류가 발생했습니다.');
+        }
+      };
+      
       // MongoDB ID로 시작하는 경우 (서버 시나리오)
       if (id.length === 24 && /^[0-9a-fA-F]{24}$/.test(id)) {
-        // 서버에 저장
-        const response = await fetch(`/api/scenarios/${id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: formData.title,
-            topic: formData.topic,
-            grade: formData.grade,
-            subject: formData.subject,
-            scenarioDetails: {
-              background: formData.background,
-              proArguments: formData.affirmative.split('\n\n').filter(p => p.trim() !== ''),
-              conArguments: formData.negative.split('\n\n').filter(p => p.trim() !== ''),
-              teacherTips: formData.teacherNotes,
-              materials: materials,
-              expectedOutcomes: expectedOutcomes
-            }
-          }),
-        });
-        
-        if (!response.ok) {
-          throw new Error('시나리오 저장 중 오류가 발생했습니다.');
-        }
+        updateServerScenario();
       } else {
         // 로컬 스토리지에 저장
         saveScenario(updatedScenario);
       }
-      
-      alert('시나리오가 성공적으로 수정되었습니다.');
-      router.push(`/scenarios/${id}`);
     } catch (error: any) {
       console.error('시나리오 저장 오류:', error);
       alert(error.message || '시나리오 저장 중 오류가 발생했습니다.');

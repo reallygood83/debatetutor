@@ -57,4 +57,6 @@ const ScenarioSchema = new Schema({
 });
 
 // 모델이 이미 있는지 확인하고 없으면 생성
-export default models.Scenario || model('Scenario', ScenarioSchema);
+const Scenario = models.Scenario || model('Scenario', ScenarioSchema);
+
+export default Scenario;

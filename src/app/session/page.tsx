@@ -210,7 +210,7 @@ export default function SessionPage() {
   
   // 시나리오 로드
   useEffect(() => {
-    const loadScenario = () => {
+    const loadScenario = async () => {
       if (!scenarioId) {
         // 시나리오 ID가 없을 경우 기본 시나리오 사용
         setScenario(DEFAULT_SCENARIO);
@@ -219,15 +219,58 @@ export default function SessionPage() {
       }
       
       try {
-        const foundScenario = getScenarioById(scenarioId);
-        if (foundScenario) {
-          setScenario(foundScenario);
-        } else {
-          // 시나리오를 찾을 수 없는 경우 기본 시나리오 사용
-          setScenario(DEFAULT_SCENARIO);
+        // 1. 로컬 스토리지에서 먼저 시나리오 찾기
+        const localScenario = getScenarioById(scenarioId);
+        if (localScenario) {
+          setScenario(localScenario);
+          setLoading(false);
+          return;
         }
+        
+        // 2. 서버에서 시나리오 가져오기
+        const response = await fetch(`/api/scenarios-new/${scenarioId}`);
+        
+        if (!response.ok) {
+          throw new Error('시나리오를 불러오는 중 오류가 발생했습니다.');
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(result.error || '서버 응답 오류');
+        }
+        
+        // MongoDB 데이터 형식을 Scenario 형식으로 변환
+        const serverData = result.data;
+        const formattedScenario: Scenario = {
+          id: serverData._id,
+          title: serverData.title,
+          totalDurationMinutes: serverData.totalDurationMinutes,
+          groupCount: serverData.groupCount,
+          createdAt: new Date(serverData.createdAt),
+          updatedAt: new Date(serverData.updatedAt),
+          stages: serverData.stages || {
+            stage1: { 
+              id: 'stage1', 
+              title: '1단계: 다름과 마주하기', 
+              activities: [] 
+            },
+            stage2: { 
+              id: 'stage2', 
+              title: '2단계: 다름을 이해하기', 
+              activities: [] 
+            },
+            stage3: { 
+              id: 'stage3', 
+              title: '3단계: 다름과 공존하기', 
+              activities: [] 
+            }
+          }
+        };
+        
+        setScenario(formattedScenario);
       } catch (error) {
-        console.error('Failed to load scenario:', error);
+        console.error('시나리오 로드 오류:', error);
         // 오류 발생 시 기본 시나리오 사용
         setScenario(DEFAULT_SCENARIO);
       } finally {
@@ -236,7 +279,7 @@ export default function SessionPage() {
     };
     
     loadScenario();
-  }, [scenarioId, router]);
+  }, [scenarioId]);
   
   // 다음 활동으로 이동
   const handleNext = () => {

@@ -160,7 +160,10 @@ export default function ScenariosPage() {
     setError(null);
     
     try {
-      const response = await fetch('/api/scenarios');
+      const response = await fetch('/api/scenarios-new', {
+        method: 'GET',
+        cache: 'no-store'
+      });
       
       if (!response.ok) {
         throw new Error('서버에서 시나리오를 불러오는 중 오류가 발생했습니다.');
@@ -202,7 +205,7 @@ export default function ScenariosPage() {
     if (!confirm('이 시나리오를 서버에서 삭제하시겠습니까?')) return;
     
     try {
-      const response = await fetch(`/api/scenarios/${id}`, {
+      const response = await fetch(`/api/scenarios-new/${id}`, {
         method: 'DELETE',
       });
       

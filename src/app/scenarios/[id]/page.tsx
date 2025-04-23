@@ -171,7 +171,7 @@ export default function ScenarioDetailPage() {
         }
 
         // 3. 서버에서 시나리오 불러오기
-        const response = await fetch(`/api/scenarios/${id}`);
+        const response = await fetch(`/api/scenarios-new/${id}`);
         
         if (!response.ok) {
           if (response.status === 404) {
@@ -233,7 +233,7 @@ export default function ScenarioDetailPage() {
         deleteScenario(id);
       } else {
         // 서버 시나리오 삭제
-        const response = await fetch(`/api/scenarios/${id}`, {
+        const response = await fetch(`/api/scenarios-new/${id}`, {
           method: 'DELETE',
         });
         

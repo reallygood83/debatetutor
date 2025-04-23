@@ -1,23 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Scenario from '@/models/scenario';
-
-type ContextProps = {
-  params: {
-    id: string;
-  };
-};
+import { isValidObjectId } from 'mongoose';
 
 /**
- * 특정 ID의 시나리오 조회
+ * 특정 시나리오 조회
  */
 export async function GET(
-  _request: NextRequest,
-  context: ContextProps
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
+    const id = params.id;
+    
+    // 유효한 ObjectId 검사
+    if (!isValidObjectId(id)) {
+      return NextResponse.json(
+        { error: '유효하지 않은 시나리오 ID입니다.' },
+        { status: 400 }
+      );
+    }
+    
     await dbConnect();
-    const scenario = await Scenario.findById(context.params.id);
+    
+    const scenario = await Scenario.findById(id).lean();
     
     if (!scenario) {
       return NextResponse.json(
@@ -26,41 +32,42 @@ export async function GET(
       );
     }
     
-    return NextResponse.json({
-      success: true,
-      data: scenario
-    });
-  } catch (error: any) {
-    console.error('시나리오 조회 오류:', error);
+    return NextResponse.json({ scenario }, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching scenario:', error);
     return NextResponse.json(
-      { error: '시나리오 조회 중 오류가 발생했습니다.', details: error.message },
+      { error: '시나리오를 불러오는 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
 }
 
 /**
- * 특정 ID의 시나리오 수정
+ * 시나리오 업데이트
  */
 export async function PUT(
   request: NextRequest,
-  context: ContextProps
+  { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
+    const id = params.id;
+    const data = await request.json();
+    
+    // 유효한 ObjectId 검사
+    if (!isValidObjectId(id)) {
+      return NextResponse.json(
+        { error: '유효하지 않은 시나리오 ID입니다.' },
+        { status: 400 }
+      );
+    }
+    
     await dbConnect();
     
-    // 업데이트 시간 추가
-    const updateData = {
-      ...body,
-      updatedAt: new Date()
-    };
-    
     const updatedScenario = await Scenario.findByIdAndUpdate(
-      context.params.id,
-      updateData,
+      id,
+      { $set: data },
       { new: true, runValidators: true }
-    );
+    ).lean();
     
     if (!updatedScenario) {
       return NextResponse.json(
@@ -69,29 +76,43 @@ export async function PUT(
       );
     }
     
-    return NextResponse.json({
-      success: true,
-      data: updatedScenario
-    });
-  } catch (error: any) {
-    console.error('시나리오 수정 오류:', error);
     return NextResponse.json(
-      { error: '시나리오 수정 중 오류가 발생했습니다.', details: error.message },
+      { 
+        message: '시나리오가 성공적으로 업데이트되었습니다.',
+        scenario: updatedScenario 
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Error updating scenario:', error);
+    return NextResponse.json(
+      { error: '시나리오 업데이트 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }
 }
 
 /**
- * 특정 ID의 시나리오 삭제
+ * 시나리오 삭제
  */
 export async function DELETE(
-  _request: NextRequest,
-  context: ContextProps
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
+    const id = params.id;
+    
+    // 유효한 ObjectId 검사
+    if (!isValidObjectId(id)) {
+      return NextResponse.json(
+        { error: '유효하지 않은 시나리오 ID입니다.' },
+        { status: 400 }
+      );
+    }
+    
     await dbConnect();
-    const deletedScenario = await Scenario.findByIdAndDelete(context.params.id);
+    
+    const deletedScenario = await Scenario.findByIdAndDelete(id).lean();
     
     if (!deletedScenario) {
       return NextResponse.json(
@@ -100,14 +121,14 @@ export async function DELETE(
       );
     }
     
-    return NextResponse.json({
-      success: true,
-      message: '시나리오가 성공적으로 삭제되었습니다.'
-    });
-  } catch (error: any) {
-    console.error('시나리오 삭제 오류:', error);
     return NextResponse.json(
-      { error: '시나리오 삭제 중 오류가 발생했습니다.', details: error.message },
+      { message: '시나리오가 성공적으로 삭제되었습니다.' },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Error deleting scenario:', error);
+    return NextResponse.json(
+      { error: '시나리오 삭제 중 오류가 발생했습니다.' },
       { status: 500 }
     );
   }

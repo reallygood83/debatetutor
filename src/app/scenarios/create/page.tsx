@@ -101,7 +101,7 @@ export default function CreateScenarioPage() {
       const topic = formData.title || sampleTopics[Math.floor(Math.random() * sampleTopics.length)];
       
       // API 호출
-      const response = await fetch('/api/generate-scenario', {
+      const response = await fetch('/api/generate-scenario-new', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -191,21 +191,53 @@ export default function CreateScenarioPage() {
       
       // 서버에 저장할지 여부 확인
       if (saveToServer) {
-        // MongoDB에 저장
-        const response = await fetch('/api/scenarios', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(newScenario),
-        });
-        
-        if (!response.ok) {
-          throw new Error('서버에 시나리오를 저장하는 중 오류가 발생했습니다.');
+        try {
+          const formData = new FormData();
+          
+          // 기본 필드 추가
+          formData.append('title', newScenario.title);
+          formData.append('totalDurationMinutes', newScenario.totalDurationMinutes.toString());
+          
+          if (newScenario.groupCount) {
+            formData.append('groupCount', newScenario.groupCount.toString());
+          }
+          
+          if (newScenario.grade) {
+            formData.append('grade', newScenario.grade);
+          }
+          
+          if (newScenario.subject) {
+            formData.append('subject', newScenario.subject);
+          }
+          
+          if (newScenario.topic) {
+            formData.append('topic', newScenario.topic);
+          }
+          
+          if (newScenario.aiGenerated) {
+            formData.append('aiGenerated', 'true');
+          }
+          
+          // scenarioDetails 객체가 있으면 JSON으로 변환하여 추가
+          if (newScenario.scenarioDetails) {
+            formData.append('scenarioDetails', JSON.stringify(newScenario.scenarioDetails));
+          }
+          
+          const response = await fetch('/api/scenarios-new', {
+            method: 'POST',
+            body: formData
+          });
+          
+          if (!response.ok) {
+            throw new Error('서버에 시나리오를 저장하는 중 오류가 발생했습니다.');
+          }
+          
+          const result = await response.json();
+          console.log('서버에 저장된 시나리오:', result.data);
+        } catch (error) {
+          console.error('서버에 시나리오 저장 중 오류:', error);
+          alert('서버에 시나리오를 저장하는 중 오류가 발생했습니다.');
         }
-        
-        const result = await response.json();
-        console.log('서버에 저장된 시나리오:', result.data);
       } else {
         // 로컬 스토리지에 저장
         saveScenario(newScenario);
